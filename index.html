@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex">
+<title>Retour vers Gestion</title>
+<style>
+  :root { color-scheme: light dark; --fg: #1d1d1f; --muted: #6e6e73; --bg: #f5f5f7; --card: #fff; --accent: #0a66d8; --error: #c62828; }
+  @media (prefers-color-scheme: dark) {
+    :root { --fg: #f5f5f7; --muted: #a1a1a6; --bg: #1c1c1e; --card: #2c2c2e; --accent: #4a9eff; --error: #ff6b6b; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+         background: var(--bg); color: var(--fg); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; }
+  main { background: var(--card); border-radius: 14px; padding: 28px; max-width: 520px; width: 100%; box-shadow: 0 2px 16px rgba(0,0,0,.08); }
+  h1 { font-size: 1.3rem; margin: 0 0 8px; }
+  p { margin: 8px 0; color: var(--muted); }
+  .error { color: var(--error); }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  a.button, button { font: inherit; border: 0; border-radius: 8px; padding: 9px 16px; cursor: pointer; text-decoration: none; }
+  a.button { background: var(--accent); color: #fff; }
+  button { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  code { display: block; margin-top: 14px; padding: 10px; border-radius: 8px; background: var(--bg); font-size: .8rem;
+         word-break: break-all; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1 id="title">Retour vers Gestion…</h1>
+  <p id="message">Ouverture de l'application Gestion.</p>
+  <div class="actions">
+    <a class="button" id="open" href="#">Ouvrir Gestion</a>
+    <button type="button" id="copy">Copier l'adresse</button>
+  </div>
+  <p id="help">Si l'application ne s'ouvre pas, copie l'adresse et colle-la dans Gestion › Connexions bancaires ›
+    « Coller l'adresse de retour ».</p>
+  <code id="address"></code>
+</main>
+<script>
+  (function () {
+    var query = window.location.search;
+    var params = new URLSearchParams(query);
+    var target = "gestion://eb-callback" + query;
+    var title = document.getElementById("title");
+    var message = document.getElementById("message");
+    document.getElementById("open").setAttribute("href", target);
+    document.getElementById("address").textContent = window.location.href;
+
+    if (params.get("error")) {
+      title.textContent = "Autorisation refusée";
+      message.textContent = params.get("error_description") || params.get("error");
+      message.className = "error";
+    } else if (!params.get("code")) {
+      title.textContent = "Page relais de Gestion";
+      message.textContent = "Cette page reçoit le retour d'autorisation de la banque et le transmet à l'application. Aucune donnée n'est conservée.";
+      document.querySelector(".actions").style.display = "none";
+      document.getElementById("help").style.display = "none";
+      document.getElementById("address").style.display = "none";
+      return;
+    }
+    // L'erreur est aussi transmise à l'app, qui oublie l'autorisation en cours.
+    window.location.href = target;
+
+    document.getElementById("copy").addEventListener("click", function () {
+      var button = this;
+      var done = function () { button.textContent = "Adresse copiée"; };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(window.location.href).then(done, function () { selectAddress(); });
+      } else {
+        selectAddress();
+      }
+    });
+
+    function selectAddress() {
+      var range = document.createRange();
+      range.selectNodeContents(document.getElementById("address"));
+      var selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      try { document.execCommand("copy"); } catch (e) {}
+    }
+  })();
+</script>
+</body>
+</html>
